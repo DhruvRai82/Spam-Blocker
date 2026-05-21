@@ -1,0 +1,6 @@
+{
+  "name": "Call Blocker",
+  "description": "Block incoming calls from numbers not in your contacts list using Android CallScreeningService.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
