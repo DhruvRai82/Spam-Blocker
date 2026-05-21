@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,8 +52,13 @@ class MainActivity : ComponentActivity() {
         val factory = CallBlockerViewModelFactory(repository)
 
         setContent {
-            MyApplicationTheme {
-                val viewModel: CallBlockerViewModel = viewModel(factory = factory)
+            val viewModel: CallBlockerViewModel = viewModel(factory = factory)
+            val useDark = when (viewModel.activeTheme) {
+                "Dark" -> true
+                "Light" -> false
+                else -> isSystemInDarkTheme()
+            }
+            MyApplicationTheme(darkTheme = useDark) {
                 val context = LocalContext.current
 
                 LaunchedEffect(Unit) {

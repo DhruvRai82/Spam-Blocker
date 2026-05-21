@@ -76,6 +76,47 @@ class CallBlockerViewModel(private val repository: CallBlockerRepository) : View
     var deviceContacts by mutableStateOf<List<DeviceContact>>(emptyList())
         private set
 
+    var activeTheme by mutableStateOf(repository.activeTheme)
+        private set
+
+    var aiSensitivityVal by mutableStateOf(repository.aiSensitivityVal)
+        private set
+
+    var selectedIconVariant by mutableStateOf(repository.selectedIconVariant)
+        private set
+
+    var isTelemetryShareEnabled by mutableStateOf(repository.isTelemetryShareEnabled)
+        private set
+
+    fun selectTheme(theme: String) {
+        viewModelScope.launch {
+            repository.activeTheme = theme
+            activeTheme = theme
+        }
+    }
+
+    fun updateSensitivity(value: Float) {
+        viewModelScope.launch {
+            repository.aiSensitivityVal = value
+            aiSensitivityVal = value
+        }
+    }
+
+    fun selectIconVariant(variant: String) {
+        viewModelScope.launch {
+            repository.selectedIconVariant = variant
+            selectedIconVariant = variant
+        }
+    }
+
+    fun toggleTelemetryShare() {
+        viewModelScope.launch {
+            val newValue = !isTelemetryShareEnabled
+            repository.isTelemetryShareEnabled = newValue
+            isTelemetryShareEnabled = newValue
+        }
+    }
+
     // Flows
     val blockedCalls: StateFlow<List<BlockedCallEntity>> = repository.allBlockedCalls
         .stateIn(

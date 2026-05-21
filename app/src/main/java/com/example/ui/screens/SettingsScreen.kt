@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.viewmodel.CallBlockerViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -32,10 +33,13 @@ fun SettingsScreen(
     val context = LocalContext.current
     val reports by viewModel.spamReports.collectAsState()
 
-    var activeThemeSegment by remember { mutableStateOf("System") } // System, Light, Dark
-    var aiSensitivityVal by remember { mutableStateOf(0.75f) } // Slider value
-    var selectedIconVariant by remember { mutableStateOf("Defending Cobalt") } // Icon variants
+    val activeThemeSegment = viewModel.activeTheme
+    val aiSensitivityVal = viewModel.aiSensitivityVal
+    val selectedIconVariant = viewModel.selectedIconVariant
+    val isTelemetryShareEnabled = viewModel.isTelemetryShareEnabled
 
+    var tempSensitivity by remember(aiSensitivityVal) { mutableStateOf(aiSensitivityVal) }
+    var isSyncing by remember { mutableStateOf(false) }
     var dbUpdateDate by remember { mutableStateOf("Last updated: 2 hours ago") }
 
     LazyColumn(
@@ -165,17 +169,29 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text("Threat Blacklist Cache", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text(dbUpdateDate, fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
                         }
+                        val scope = rememberCoroutineScope()
                         OutlinedButton(
+                            enabled = !isSyncing,
                             onClick = {
-                                dbUpdateDate = "Last updated: Just now (✓ OK)"
-                                Toast.makeText(context, "Anti-robocalls vectors synchronized smoothly!", Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    isSyncing = true
+                                    dbUpdateDate = "Syncing threat directories..."
+                                    kotlinx.coroutines.delay(1200)
+                                    isSyncing = false
+                                    dbUpdateDate = "Last updated: Just now (✓ OK)"
+                                    Toast.makeText(context, "Anti-robocalls vectors synchronized smoothly!", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         ) {
-                            Text("Force Sync", fontSize = 11.sp)
+                            if (isSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text("Force Sync", fontSize = 11.sp)
+                            }
                         }
                     }
 
@@ -190,8 +206,8 @@ fun SettingsScreen(
                             Text("AI Screening Confidence Level", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text(
                                 text = when {
-                                    aiSensitivityVal < 0.4f -> "Mild Sensitivity"
-                                    aiSensitivityVal < 0.8f -> "Standard Shield"
+                                    tempSensitivity < 0.4f -> "Mild Sensitivity"
+                                    tempSensitivity < 0.8f -> "Standard Shield"
                                     else -> "Maximum Defend"
                                 },
                                 fontWeight = FontWeight.SemiBold,
@@ -200,8 +216,12 @@ fun SettingsScreen(
                             )
                         }
                         Slider(
-                            value = aiSensitivityVal,
-                            onValueChange = { aiSensitivityVal = it }
+                            value = tempSensitivity,
+                            onValueChange = { tempSensitivity = it },
+                            onValueChangeFinished = {
+                                viewModel.updateSensitivity(tempSensitivity)
+                                Toast.makeText(context, "AI sensitivity saved: ${String.format("%.2f", tempSensitivity)}", Toast.LENGTH_SHORT).show()
+                            }
                         )
                     }
                 }
@@ -231,7 +251,10 @@ fun SettingsScreen(
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                        .clickable { activeThemeSegment = theme }
+                                        .clickable { 
+                                            viewModel.selectTheme(theme)
+                                            Toast.makeText(context, "$theme theme applied!", Toast.LENGTH_SHORT).show()
+                                        }
                                         .padding(vertical = 6.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -262,7 +285,10 @@ fun SettingsScreen(
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                                        .clickable { selectedIconVariant = variant }
+                                        .clickable { 
+                                            viewModel.selectIconVariant(variant)
+                                            Toast.makeText(context, "App icon updated to $variant configuration!", Toast.LENGTH_SHORT).show()
+                                        }
                                         .padding(8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -296,7 +322,14 @@ fun SettingsScreen(
                             Text("Database Telemetry Share", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("Stream anonymous robocalls prefix details to crowdsourced clouds.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = true, onCheckedChange = {})
+                        Switch(
+                            checked = isTelemetryShareEnabled,
+                            onCheckedChange = { 
+                                viewModel.toggleTelemetryShare()
+                                val msg = if (!isTelemetryShareEnabled) "Crowdsourced logs telemetry sharing active" else "Private offline-only mode active"
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
                     }
 
                     Divider()

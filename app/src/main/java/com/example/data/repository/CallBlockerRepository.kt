@@ -32,7 +32,28 @@ class CallBlockerRepository(
         private const val KEY_DND_END_MIN = "dnd_end_min"
         
         private const val KEY_BLOCKED_PATTERNS = "blocked_patterns"
+
+        private const val KEY_APP_THEME = "app_theme"
+        private const val KEY_AI_SENSITIVITY = "ai_sensitivity"
+        private const val KEY_ICON_VARIANT = "icon_variant"
+        private const val KEY_TELEMETRY_SHARE = "telemetry_share"
     }
+
+    var activeTheme: String
+        get() = sharedPrefs.getString(KEY_APP_THEME, "System") ?: "System"
+        set(value) = sharedPrefs.edit().putString(KEY_APP_THEME, value).apply()
+
+    var aiSensitivityVal: Float
+        get() = sharedPrefs.getFloat(KEY_AI_SENSITIVITY, 0.75f)
+        set(value) = sharedPrefs.edit().putFloat(KEY_AI_SENSITIVITY, value).apply()
+
+    var selectedIconVariant: String
+        get() = sharedPrefs.getString(KEY_ICON_VARIANT, "Defending Cobalt") ?: "Defending Cobalt"
+        set(value) = sharedPrefs.edit().putString(KEY_ICON_VARIANT, value).apply()
+
+    var isTelemetryShareEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_TELEMETRY_SHARE, true)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_TELEMETRY_SHARE, value).apply()
 
     var isBlockNonContactsEnabled: Boolean
         get() = sharedPrefs.getBoolean(KEY_BLOCK_NON_CONTACTS, true)

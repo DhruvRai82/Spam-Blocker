@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,6 +42,31 @@ fun ContactsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var showAddContactSheet by remember { mutableStateOf(false) }
+
+    var hasPermission by remember {
+        mutableStateOf(
+            context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val g = permissions[Manifest.permission.READ_CONTACTS] ?: false
+        hasPermission = g
+        if (g) {
+            viewModel.updateContactCount(context)
+            Toast.makeText(context, "Contact Access Granted!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Contacts permissions are required to display your phone list.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) {
+            viewModel.updateContactCount(context)
+        }
+    }
 
     // State bindings
     val deviceContacts = viewModel.deviceContacts
@@ -138,7 +166,13 @@ fun ContactsScreen(
             when (activeTab) {
                 0 -> {
                     // ALL DIRECTORY WITH SIDE INDEX BAR
-                    if (groupedContacts.isEmpty()) {
+                    if (!hasPermission) {
+                        PermissionRequiredView {
+                            permissionLauncher.launch(
+                                arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
+                            )
+                        }
+                    } else if (groupedContacts.isEmpty()) {
                         ContactsPlaceholder(
                             label = "No Contacts Found",
                             info = "Verify you granted read permission. Try clicking the Refresh button above.",
@@ -211,67 +245,75 @@ fun ContactsScreen(
                 }
                 1 -> {
                     // VIP CAROUSEL + ALL REMAINING
-                    val favoritesList = remember(deviceContacts) {
-                        deviceContacts.filter { it.isFavorite }
-                    }
-
-                    if (favoritesList.isEmpty()) {
-                        ContactsPlaceholder(
-                            label = "No VIP/Starred Contacts",
-                            info = "Contacts marked as Starred appear as VIP priority, passing shielding bypasses.",
-                            onAction = {}
-                        )
-                    } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Horizontal big horizontal carousel top items
-                            Text(
-                                text = "VIP BYPASS DIRECTORY",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp),
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                    if (!hasPermission) {
+                        PermissionRequiredView {
+                            permissionLauncher.launch(
+                                arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
                             )
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(favoritesList) { fav ->
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier.width(76.dp)
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        }
+                    } else {
+                        val favoritesList = remember(deviceContacts) {
+                            deviceContacts.filter { it.isFavorite }
+                        }
+
+                        if (favoritesList.isEmpty()) {
+                            ContactsPlaceholder(
+                                label = "No VIP/Starred Contacts",
+                                info = "Contacts marked as Starred appear as VIP priority, passing shielding bypasses.",
+                                onAction = {}
+                            )
+                        } else {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Horizontal big horizontal carousel top items
+                                Text(
+                                    text = "VIP BYPASS DIRECTORY",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp),
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                )
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(favoritesList) { fav ->
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.width(76.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Star,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier
+                                                    .size(60.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = fav.name,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center,
+                                                maxLines = 1
                                             )
                                         }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = fav.name,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center,
-                                            maxLines = 1
-                                        )
                                     }
                                 }
-                            }
-                            
-                            Divider(modifier = Modifier.padding(vertical = 12.dp))
+                                
+                                Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-                            // Rest list items
-                            LazyColumn(modifier = Modifier.weight(1f)) {
-                                items(favoritesList) { contact ->
-                                    ContactRowItem(contact = contact, onToggleFav = {})
+                                // Rest list items
+                                LazyColumn(modifier = Modifier.weight(1f)) {
+                                    items(favoritesList) { contact ->
+                                        ContactRowItem(contact = contact, onToggleFav = {})
+                                    }
                                 }
                             }
                         }
@@ -599,6 +641,64 @@ fun ContactsPlaceholder(
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onAction) {
                 Text("Bypass Add Direct")
+            }
+        }
+    }
+}
+
+@Composable
+fun PermissionRequiredView(
+    onRequestAccess: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ContactPhone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Contacts Directory Access",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "ShieldCall needs access to your contacts to construct bypass rules for your family and block unknown numbers correctly.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onRequestAccess,
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text("Grant Contacts Access", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
