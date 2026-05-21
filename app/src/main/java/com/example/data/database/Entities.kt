@@ -18,3 +18,13 @@ data class WhitelistedNumberEntity(
     val name: String,
     val addedTimestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "spam_reports")
+data class SpamReportEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val phoneNumber: String,
+    val category: String,
+    val description: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val receivedCall: Boolean = true
+)

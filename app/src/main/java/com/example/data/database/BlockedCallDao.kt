@@ -31,4 +31,13 @@ interface BlockedCallDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM whitelisted_numbers WHERE phoneNumber = :number LIMIT 1)")
     suspend fun existsInWhitelist(number: String): Boolean
+
+    @Query("SELECT * FROM spam_reports ORDER BY timestamp DESC")
+    fun getAllSpamReports(): Flow<List<SpamReportEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSpamReport(report: SpamReportEntity)
+
+    @Query("DELETE FROM spam_reports")
+    suspend fun clearAllSpamReports()
 }

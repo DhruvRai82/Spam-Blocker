@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.data.database.BlockedCallDao
 import com.example.data.database.BlockedCallEntity
 import com.example.data.database.WhitelistedNumberEntity
+import com.example.data.database.SpamReportEntity
 import kotlinx.coroutines.flow.Flow
 
 class CallBlockerRepository(
@@ -15,6 +16,22 @@ class CallBlockerRepository(
     companion object {
         private const val KEY_BLOCK_NON_CONTACTS = "block_non_contacts"
         private const val KEY_SERVICE_ENABLED = "service_enabled"
+        private const val KEY_MOCK_ROLE_GRANTED = "mock_role_granted"
+        
+        private const val KEY_FILTER_ROBOCALLS = "filter_robocalls"
+        private const val KEY_FILTER_TELEMARKETING = "filter_telemarketing"
+        private const val KEY_FILTER_SCAM = "filter_scam"
+        private const val KEY_FILTER_UNKNOWN = "filter_unknown"
+        private const val KEY_FILTER_SILENT = "filter_silent"
+        private const val KEY_FILTER_INTERNATIONAL = "filter_intl"
+        
+        private const val KEY_DND_ENABLED = "dnd_enabled"
+        private const val KEY_DND_START_HOUR = "dnd_start_hour"
+        private const val KEY_DND_START_MIN = "dnd_start_min"
+        private const val KEY_DND_END_HOUR = "dnd_end_hour"
+        private const val KEY_DND_END_MIN = "dnd_end_min"
+        
+        private const val KEY_BLOCKED_PATTERNS = "blocked_patterns"
     }
 
     var isBlockNonContactsEnabled: Boolean
@@ -29,7 +46,74 @@ class CallBlockerRepository(
             sharedPrefs.edit().putBoolean(KEY_SERVICE_ENABLED, value).apply()
         }
 
+    var isMockRoleGranted: Boolean
+        get() = sharedPrefs.getBoolean(KEY_MOCK_ROLE_GRANTED, false)
+        set(value) {
+            sharedPrefs.edit().putBoolean(KEY_MOCK_ROLE_GRANTED, value).apply()
+        }
+
+    // Advanced block category properties
+    var isFilterRobocallsEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_ROBOCALLS, true)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_ROBOCALLS, value).apply()
+
+    var isFilterTelemarketingEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_TELEMARKETING, true)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_TELEMARKETING, value).apply()
+
+    var isFilterScamEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_SCAM, true)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_SCAM, value).apply()
+
+    var isFilterUnknownEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_UNKNOWN, false)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_UNKNOWN, value).apply()
+
+    var isFilterSilentEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_SILENT, false)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_SILENT, value).apply()
+
+    var isFilterInternationalEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_FILTER_INTERNATIONAL, false)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_FILTER_INTERNATIONAL, value).apply()
+
+    // DND
+    var isDndEnabled: Boolean
+        get() = sharedPrefs.getBoolean(KEY_DND_ENABLED, false)
+        set(value) = sharedPrefs.edit().putBoolean(KEY_DND_ENABLED, value).apply()
+
+    var dndStartHour: Int
+        get() = sharedPrefs.getInt(KEY_DND_START_HOUR, 22)
+        set(value) = sharedPrefs.edit().putInt(KEY_DND_START_HOUR, value).apply()
+
+    var dndStartMinute: Int
+        get() = sharedPrefs.getInt(KEY_DND_START_MIN, 0)
+        set(value) = sharedPrefs.edit().putInt(KEY_DND_START_MIN, value).apply()
+
+    var dndEndHour: Int
+        get() = sharedPrefs.getInt(KEY_DND_END_HOUR, 7)
+        set(value) = sharedPrefs.edit().putInt(KEY_DND_END_HOUR, value).apply()
+
+    var dndEndMinute: Int
+        get() = sharedPrefs.getInt(KEY_DND_END_MIN, 0)
+        set(value) = sharedPrefs.edit().putInt(KEY_DND_END_MIN, value).apply()
+
+    // Patterns list (comma-separated strings)
+    var blockedPatterns: String
+        get() = sharedPrefs.getString(KEY_BLOCKED_PATTERNS, "+91-140,+1-800") ?: ""
+        set(value) = sharedPrefs.edit().putString(KEY_BLOCKED_PATTERNS, value).apply()
+
     val allBlockedCalls: Flow<List<BlockedCallEntity>> = blockedCallDao.getAllBlockedCalls()
+
+    val allSpamReports: Flow<List<SpamReportEntity>> = blockedCallDao.getAllSpamReports()
+
+    suspend fun insertSpamReport(report: SpamReportEntity) {
+        blockedCallDao.insertSpamReport(report)
+    }
+
+    suspend fun clearAllSpamReports() {
+        blockedCallDao.clearAllSpamReports()
+    }
 
     suspend fun insertBlockedCall(call: BlockedCallEntity) {
         blockedCallDao.insertBlockedCall(call)

@@ -1,6 +1,6 @@
 {
-  "name": "Call Blocker",
-  "description": "Block incoming calls from numbers not in your contacts list using Android CallScreeningService.",
+  "name": "ShieldCall",
+  "description": "Smart Caller Screening, AI Robocall protection, Spam Shield blocking and custom Dialers with Material You.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
